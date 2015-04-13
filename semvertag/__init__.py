@@ -121,7 +121,6 @@ def tags_get_filtered(stage=None, prefix='', cwd=None):
 
 def latest_tag(stage=None, prefix='', cwd=None):
     """
-
     :param stage:
     :param prefix:
     :param cwd: git repository directory
@@ -168,6 +167,22 @@ def bump_tag(stage=None, prefix='', cwd=None, field='build'):
     return
 
 
+def list_tags(stage=None, prefix='', cwd=None, reverse=True):
+    """
+    returns all tags based on stage and prefix, optionally
+    in reverse order
+    :param stage: release stage
+    :param prefix: tag prefix
+    :param cwd: git repository directory
+    :param reverse: sort order (descending by default)
+    :return: sorted list of available tags that match prefix and stage
+    """
+    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd),
+                  reverse=reverse)
+    if tags:
+        return tags
+
+
 def command_latest(args):
     """
     semvertag latest
@@ -205,6 +220,23 @@ def command_tag(args):
     return tag
 
 
+def command_list(args):
+    """
+    semvertag list
+    :param args:
+    :return:
+    """
+    delimeter = "\n"
+    if args.csv:
+        delimeter = ','
+
+    tags = list_tags(args.stage, args.prefix, args.cwd, args.reverse)
+    if tags is None:
+        return "ERROR: No tags has been found. Please create 1st SemVer tag i.e. 'git tag 0.0.1'"
+
+    return delimeter.join([str(t) for t in tags])
+
+
 def get_argparser():
     """
     configure commandline arguments parsing
@@ -237,6 +269,15 @@ def get_argparser():
     parser_tag = subparsers.add_parser('tag')
     parser_tag.add_argument('tag', metavar='tag_to_assign', nargs=1, help="New tag to assign and push to remote")
     parser_tag.set_defaults(func=command_tag)
+
+    parser_list = subparsers.add_parser('list')
+    parser_list.add_argument('--reverse', action='store_false', help='Whether to '
+                             'reverse the sort order (descending by default) '
+                             'when listing tags')
+    parser_list.add_argument('--csv', action='store_true', help='Use a comma '
+                             'to separate tags when listing')
+    add_stage_prefix(parser_list)
+    parser_list.set_defaults(func=command_list)
 
     return parser
 
