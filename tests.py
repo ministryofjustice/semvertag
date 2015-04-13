@@ -156,6 +156,15 @@ class TestSemVerTag(unittest.TestCase):
         ver = self.semvertag('bump --prefix precious- --tag').strip()
         assert ver == "precious-1.0.0+1"
 
+    def test_list(self):
+        tags = self.semvertag('list').strip()
+        assert tags == "1.2.1+3\n1.0.1+3\n1.0.1+2\n1.0.1+1\n1.0.0"
+        tags = self.semvertag('list --csv').strip()
+        assert tags == "1.2.1+3,1.0.1+3,1.0.1+2,1.0.1+1,1.0.0"
+        tags = self.semvertag('list --reverse').strip()
+        assert tags == "1.0.0\n1.0.1+1\n1.0.1+2\n1.0.1+3\n1.2.1+3"
+        tags = self.semvertag('list --reverse --csv').strip()
+        assert tags == "1.0.0,1.0.1+1,1.0.1+2,1.0.1+3,1.2.1+3"
 
     def tearDown(self):
         print "tearDown"
