@@ -125,7 +125,7 @@ def tags_get_filtered(stage=None, prefix='', cwd=None, create_default_tags=False
         if stage:
             tags = [Tag("{}0.0.0-{}".format(prefix, stage), prefix=prefix)]
         else:
-            tags = [Tag("{}0.0.0".format(prefix, stage), prefix=prefix)]
+            tags = [Tag("{}0.0.0".format(prefix), prefix=prefix)]
 
     return tags
 
