@@ -11,7 +11,7 @@ DEVNULL = open(os.devnull, 'wb')
 
 class SemVerTagTest(unittest.TestCase):
     def setUp(self):
-        print "setUp"
+        print "Setup testing repos"
         call("rm -Rf tmp".split())
         call("mkdir -p tmp/repo-origin".split())
         call("ls",
@@ -33,21 +33,6 @@ class SemVerTagTest(unittest.TestCase):
              cwd="tmp",
              stdout=DEVNULL,
              stderr=DEVNULL)
-        self.gittag('1.0.0')
-        self.gittag('1.0.1+1')
-        self.gittag('1.0.1+2')
-        self.gittag('1.0.1+3')
-        self.gittag('1.2.1+3')
-        self.gittag('1.2.1-foo+2')
-        self.gittag('1.2.1-foo+1')
-        self.gittag('1.3.1-bar+1')
-        self.gittag('1.3.2-bar')
-        self.gittag('plum-0.0.2-bar+1')
-        self.gittag('plum-0.0.2-bar+2')
-        self.gittag('plum-0.0.1-bar+2')
-        # unsupported strings
-        self.gittag('plum-0.0.a-bar+2')
-        self.gittag('plum-0.0.a-bar+2bc')
 
     def semvertag(self, command, cwd='tmp/repo'):
         parser = semvertag.get_argparser()
@@ -68,6 +53,25 @@ class SemVerTagTest(unittest.TestCase):
 
 
 class TestSemVerTag(SemVerTagTest):
+    def setUp(self):
+        super(TestSemVerTag, self).setUp()
+        print "Setting Tags"
+        self.gittag('1.0.0')
+        self.gittag('1.0.1+1')
+        self.gittag('1.0.1+2')
+        self.gittag('1.0.1+3')
+        self.gittag('1.2.1+3')
+        self.gittag('1.2.1-foo+2')
+        self.gittag('1.2.1-foo+1')
+        self.gittag('1.3.1-bar+1')
+        self.gittag('1.3.2-bar')
+        self.gittag('plum-0.0.2-bar+1')
+        self.gittag('plum-0.0.2-bar+2')
+        self.gittag('plum-0.0.1-bar+2')
+        # unsupported strings
+        self.gittag('plum-0.0.a-bar+2')
+        self.gittag('plum-0.0.a-bar+2bc')
+
     def test_latest(self):
         ver = self.semvertag('latest').strip()
         assert ver == "1.2.1+3"
