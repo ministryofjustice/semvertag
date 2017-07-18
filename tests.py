@@ -110,13 +110,6 @@ class TestSemVerTag(BaseSemVerTagTest):
         ver = self.semvertag('bump --stage bar --prefix plum- --tag').strip()
         assert ver == "plum-0.0.2-bar+4"
 
-    #
-    # def test_no_tags_error(self):
-    #     ver = self.semvertag('latest --stage baz').strip()
-    #     assert "ERROR" in ver
-    #     ver = self.semvertag('bump --stage baz').strip()
-    #     assert "ERROR" in ver
-
     def test_set_arbitrary_tag(self):
         ver = self.semvertag('tag foobar-1.2.3').strip()
         assert ver == 'foobar-1.2.3'
@@ -192,13 +185,18 @@ class TestInitialiseTags(BaseSemVerTagTest):
         tags = self.semvertag('list --prefix plum-').strip()
         assert tags == 'plum-0.0.1'
 
-
-
-
-    # Test that latest reports the correct tags when no tags are present
+    # Test that latest command reports the correct tags when no tags are present
     def test_starting_latest(self):
         ver = self.semvertag('latest').strip()
         assert ver == '0.0.0'
+
+    def test_starting_latest_suffix(self):
+        ver = self.semvertag('latest --stage foo').strip()
+        assert ver == '0.0.0-foo'
+
+    def test_starting_latest_prefix(self):
+        ver = self.semvertag('latest --prefix plum-').strip()
+        assert ver == 'plum-0.0.0'
 
 
 if __name__ == '__main__':
