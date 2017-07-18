@@ -33,53 +33,21 @@ class SemVerTagTest(unittest.TestCase):
              cwd="tmp",
              stdout=DEVNULL,
              stderr=DEVNULL)
-        call("git tag 1.0.0".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.0.1+1".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.0.1+2".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.0.1+3".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.2.1+3".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)  # latest
-        call("git tag 1.2.1-foo+2".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)  # latest
-        call("git tag 1.2.1-foo+1".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.3.1-bar+1".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.3.2-bar".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)  # latest
-        call("git tag plum-0.0.2-bar+1".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag plum-0.0.2-bar+2".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag plum-0.0.1-bar+2".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-
+        self.gittag('1.0.0')
+        self.gittag('1.0.1+1')
+        self.gittag('1.0.1+2')
+        self.gittag('1.0.1+3')
+        self.gittag('1.2.1+3')
+        self.gittag('1.2.1-foo+2')
+        self.gittag('1.2.1-foo+1')
+        self.gittag('1.3.1-bar+1')
+        self.gittag('1.3.2-bar')
+        self.gittag('plum-0.0.2-bar+1')
+        self.gittag('plum-0.0.2-bar+2')
+        self.gittag('plum-0.0.1-bar+2')
         # unsupported strings
-        call("git tag plum-0.0.a-bar+2".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag plum-0.0.a-bar+2bc".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-
-        # call("git tag -l".split(),
-        #      cwd="tmp/repo")  # latest
+        self.gittag('plum-0.0.a-bar+2')
+        self.gittag('plum-0.0.a-bar+2bc')
 
     def semvertag(self, command, cwd='tmp/repo'):
         parser = semvertag.get_argparser()
@@ -88,6 +56,11 @@ class SemVerTagTest(unittest.TestCase):
         args = parser.parse_args(args_list)
         response = args.func(args)
         return response
+
+    def gittag(self, tagname):
+        call('git tag {}'.format(tagname).split(),
+             cwd="tmp/repo",
+             stdout=DEVNULL)
 
     def tearDown(self):
         print "tearDown"
