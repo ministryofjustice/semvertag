@@ -21,6 +21,7 @@ _REGEX = re.compile('^(?P<major>(?:0|[1-9][0-9]*))'
 class ExecutionError(Exception):
     pass
 
+
 class Tag(object):
     """
     Object encapsulating SemVer and tag prefix.

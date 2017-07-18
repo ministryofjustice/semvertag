@@ -1,12 +1,12 @@
 import os
-from subprocess import call, Popen, PIPE
+from subprocess import call
 import unittest
 import semvertag
 
 DEVNULL = open(os.devnull, 'wb')
 
 
-#TODO: case with no tags at all on repo
+# TODO: case with no tags at all on repo
 
 class TestSemVerTag(unittest.TestCase):
     def setUp(self):
