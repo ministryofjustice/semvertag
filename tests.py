@@ -8,7 +8,8 @@ DEVNULL = open(os.devnull, 'wb')
 
 # TODO: case with no tags at all on repo
 
-class TestSemVerTag(unittest.TestCase):
+
+class SemVerTagTest(unittest.TestCase):
     def setUp(self):
         print "setUp"
         call("rm -Rf tmp".split())
@@ -88,6 +89,12 @@ class TestSemVerTag(unittest.TestCase):
         response = args.func(args)
         return response
 
+    def tearDown(self):
+        print "tearDown"
+        call("rm -Rf tmp".split())
+
+
+class TestSemVerTag(SemVerTagTest):
     def test_latest(self):
         ver = self.semvertag('latest').strip()
         assert ver == "1.2.1+3"
@@ -165,10 +172,6 @@ class TestSemVerTag(unittest.TestCase):
         assert tags == "1.0.0\n1.0.1+1\n1.0.1+2\n1.0.1+3\n1.2.1+3"
         tags = self.semvertag('list --reverse --csv').strip()
         assert tags == "1.0.0,1.0.1+1,1.0.1+2,1.0.1+3,1.2.1+3"
-
-    def tearDown(self):
-        print "tearDown"
-        call("rm -Rf tmp".split())
 
 
 if __name__ == '__main__':
