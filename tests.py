@@ -6,12 +6,8 @@ import semvertag
 DEVNULL = open(os.devnull, 'wb')
 
 
-# TODO: case with no tags at all on repo
-
-
-class SemVerTagTest(unittest.TestCase):
+class BaseSemVerTagTest(unittest.TestCase):
     def setUp(self):
-        print "Setup testing repos"
         call("rm -Rf tmp".split())
         call("mkdir -p tmp/repo-origin".split())
         call("ls",
@@ -48,14 +44,12 @@ class SemVerTagTest(unittest.TestCase):
              stdout=DEVNULL)
 
     def tearDown(self):
-        print "tearDown"
         call("rm -Rf tmp".split())
 
 
-class TestSemVerTag(SemVerTagTest):
+class TestSemVerTag(BaseSemVerTagTest):
     def setUp(self):
         super(TestSemVerTag, self).setUp()
-        print "Setting Tags"
         self.gittag('1.0.0')
         self.gittag('1.0.1+1')
         self.gittag('1.0.1+2')
@@ -116,11 +110,12 @@ class TestSemVerTag(SemVerTagTest):
         ver = self.semvertag('bump --stage bar --prefix plum- --tag').strip()
         assert ver == "plum-0.0.2-bar+4"
 
-    def test_no_tags_error(self):
-        ver = self.semvertag('latest --stage baz').strip()
-        assert "ERROR" in ver
-        ver = self.semvertag('bump --stage baz').strip()
-        assert "ERROR" in ver
+    #
+    # def test_no_tags_error(self):
+    #     ver = self.semvertag('latest --stage baz').strip()
+    #     assert "ERROR" in ver
+    #     ver = self.semvertag('bump --stage baz').strip()
+    #     assert "ERROR" in ver
 
     def test_set_arbitrary_tag(self):
         ver = self.semvertag('tag foobar-1.2.3').strip()
@@ -149,6 +144,61 @@ class TestSemVerTag(SemVerTagTest):
         assert tags == "1.0.0\n1.0.1+1\n1.0.1+2\n1.0.1+3\n1.2.1+3"
         tags = self.semvertag('list --reverse --csv').strip()
         assert tags == "1.0.0,1.0.1+1,1.0.1+2,1.0.1+3,1.2.1+3"
+
+
+class TestInitialiseTags(BaseSemVerTagTest):
+    # Test that initial tag is created correctly with empty repos.
+    def test_starting_tag(self):
+        ver = self.semvertag('bump --tag').strip()
+        tags = self.semvertag('list').strip()
+        assert ver == '0.0.0+1'
+        assert tags == '0.0.0+1'
+
+    def test_starting_tag_patch(self):
+        ver = self.semvertag('bump patch --tag').strip()
+        tags = self.semvertag('list').strip()
+        assert ver == '0.0.1'
+        assert tags == '0.0.1'
+
+    def test_starting_tag_minor(self):
+        ver = self.semvertag('bump minor --tag').strip()
+        tags = self.semvertag('list').strip()
+        assert ver == '0.1.0'
+        assert tags == '0.1.0'
+
+    def test_starting_tag_minor_suffix(self):
+        ver = self.semvertag('bump minor --tag --stage foo').strip()
+        tags = self.semvertag('list --stage foo').strip()
+        assert ver == '0.1.0-foo'
+        assert tags == '0.1.0-foo'
+
+    def test_starting_tag_minor_prefix(self):
+        ver = self.semvertag('bump minor --tag --prefix plum-').strip()
+        tags = self.semvertag('list --prefix plum-').strip()
+        assert ver == 'plum-0.1.0'
+        assert tags == 'plum-0.1.0'
+
+    def test_tagging_scheme_initialisation_can_coexist(self):
+        ver = self.semvertag('bump patch --tag').strip()
+        foo_ver = self.semvertag('bump patch --tag --stage foo').strip()
+        plum_ver = self.semvertag('bump patch --tag --prefix plum-').strip()
+        assert ver == '0.0.1'
+        assert foo_ver == '0.0.1-foo'
+        assert plum_ver == 'plum-0.0.1'
+        tags = self.semvertag('list').strip()
+        assert tags == '0.0.1'
+        tags = self.semvertag('list --stage foo').strip()
+        assert tags == '0.0.1-foo'
+        tags = self.semvertag('list --prefix plum-').strip()
+        assert tags == 'plum-0.0.1'
+
+
+
+
+    # Test that latest reports the correct tags when no tags are present
+    def test_starting_latest(self):
+        ver = self.semvertag('latest').strip()
+        assert ver == '0.0.0'
 
 
 if __name__ == '__main__':
