@@ -1,16 +1,13 @@
 import os
-from subprocess import call, Popen, PIPE
+from subprocess import call
 import unittest
 import semvertag
 
 DEVNULL = open(os.devnull, 'wb')
 
 
-#TODO: case with no tags at all on repo
-
-class TestSemVerTag(unittest.TestCase):
+class BaseSemVerTagTest(unittest.TestCase):
     def setUp(self):
-        print "setUp"
         call("rm -Rf tmp".split())
         call("mkdir -p tmp/repo-origin".split())
         call("ls",
@@ -32,53 +29,6 @@ class TestSemVerTag(unittest.TestCase):
              cwd="tmp",
              stdout=DEVNULL,
              stderr=DEVNULL)
-        call("git tag 1.0.0".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.0.1+1".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.0.1+2".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.0.1+3".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.2.1+3".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)  # latest
-        call("git tag 1.2.1-foo+2".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)  # latest
-        call("git tag 1.2.1-foo+1".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.3.1-bar+1".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag 1.3.2-bar".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)  # latest
-        call("git tag plum-0.0.2-bar+1".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag plum-0.0.2-bar+2".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag plum-0.0.1-bar+2".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-
-        # unsupported strings
-        call("git tag plum-0.0.a-bar+2".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-        call("git tag plum-0.0.a-bar+2bc".split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
-
-        # call("git tag -l".split(),
-        #      cwd="tmp/repo")  # latest
 
     def semvertag(self, command, cwd='tmp/repo'):
         parser = semvertag.get_argparser()
@@ -87,6 +37,34 @@ class TestSemVerTag(unittest.TestCase):
         args = parser.parse_args(args_list)
         response = args.func(args)
         return response
+
+    def gittag(self, tagname):
+        call('git tag {}'.format(tagname).split(),
+             cwd="tmp/repo",
+             stdout=DEVNULL)
+
+    def tearDown(self):
+        call("rm -Rf tmp".split())
+
+
+class TestSemVerTag(BaseSemVerTagTest):
+    def setUp(self):
+        super(TestSemVerTag, self).setUp()
+        self.gittag('1.0.0')
+        self.gittag('1.0.1+1')
+        self.gittag('1.0.1+2')
+        self.gittag('1.0.1+3')
+        self.gittag('1.2.1+3')
+        self.gittag('1.2.1-foo+2')
+        self.gittag('1.2.1-foo+1')
+        self.gittag('1.3.1-bar+1')
+        self.gittag('1.3.2-bar')
+        self.gittag('plum-0.0.2-bar+1')
+        self.gittag('plum-0.0.2-bar+2')
+        self.gittag('plum-0.0.1-bar+2')
+        # unsupported strings
+        self.gittag('plum-0.0.a-bar+2')
+        self.gittag('plum-0.0.a-bar+2bc')
 
     def test_latest(self):
         ver = self.semvertag('latest').strip()
@@ -132,12 +110,6 @@ class TestSemVerTag(unittest.TestCase):
         ver = self.semvertag('bump --stage bar --prefix plum- --tag').strip()
         assert ver == "plum-0.0.2-bar+4"
 
-    def test_no_tags_error(self):
-        ver = self.semvertag('latest --stage baz').strip()
-        assert "ERROR" in ver
-        ver = self.semvertag('bump --stage baz').strip()
-        assert "ERROR" in ver
-
     def test_set_arbitrary_tag(self):
         ver = self.semvertag('tag foobar-1.2.3').strip()
         assert ver == 'foobar-1.2.3'
@@ -166,9 +138,65 @@ class TestSemVerTag(unittest.TestCase):
         tags = self.semvertag('list --reverse --csv').strip()
         assert tags == "1.0.0,1.0.1+1,1.0.1+2,1.0.1+3,1.2.1+3"
 
-    def tearDown(self):
-        print "tearDown"
-        call("rm -Rf tmp".split())
+
+class TestInitialiseTags(BaseSemVerTagTest):
+    # Test that initial tag is created correctly with empty repos.
+    def test_starting_tag(self):
+        ver = self.semvertag('bump --tag').strip()
+        tags = self.semvertag('list').strip()
+        assert ver == '0.0.0+1'
+        assert tags == '0.0.0+1'
+
+    def test_starting_tag_patch(self):
+        ver = self.semvertag('bump patch --tag').strip()
+        tags = self.semvertag('list').strip()
+        assert ver == '0.0.1'
+        assert tags == '0.0.1'
+
+    def test_starting_tag_minor(self):
+        ver = self.semvertag('bump minor --tag').strip()
+        tags = self.semvertag('list').strip()
+        assert ver == '0.1.0'
+        assert tags == '0.1.0'
+
+    def test_starting_tag_minor_suffix(self):
+        ver = self.semvertag('bump minor --tag --stage foo').strip()
+        tags = self.semvertag('list --stage foo').strip()
+        assert ver == '0.1.0-foo'
+        assert tags == '0.1.0-foo'
+
+    def test_starting_tag_minor_prefix(self):
+        ver = self.semvertag('bump minor --tag --prefix plum-').strip()
+        tags = self.semvertag('list --prefix plum-').strip()
+        assert ver == 'plum-0.1.0'
+        assert tags == 'plum-0.1.0'
+
+    def test_tagging_scheme_initialisation_can_coexist(self):
+        ver = self.semvertag('bump patch --tag').strip()
+        foo_ver = self.semvertag('bump patch --tag --stage foo').strip()
+        plum_ver = self.semvertag('bump patch --tag --prefix plum-').strip()
+        assert ver == '0.0.1'
+        assert foo_ver == '0.0.1-foo'
+        assert plum_ver == 'plum-0.0.1'
+        tags = self.semvertag('list').strip()
+        assert tags == '0.0.1'
+        tags = self.semvertag('list --stage foo').strip()
+        assert tags == '0.0.1-foo'
+        tags = self.semvertag('list --prefix plum-').strip()
+        assert tags == 'plum-0.0.1'
+
+    # Test that latest command reports the correct tags when no tags are present
+    def test_starting_latest(self):
+        ver = self.semvertag('latest').strip()
+        assert ver == '0.0.0'
+
+    def test_starting_latest_suffix(self):
+        ver = self.semvertag('latest --stage foo').strip()
+        assert ver == '0.0.0-foo'
+
+    def test_starting_latest_prefix(self):
+        ver = self.semvertag('latest --prefix plum-').strip()
+        assert ver == 'plum-0.0.0'
 
 
 if __name__ == '__main__':

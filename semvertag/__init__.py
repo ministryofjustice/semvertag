@@ -21,6 +21,7 @@ _REGEX = re.compile('^(?P<major>(?:0|[1-9][0-9]*))'
 class ExecutionError(Exception):
     pass
 
+
 class Tag(object):
     """
     Object encapsulating SemVer and tag prefix.
@@ -98,7 +99,7 @@ def git_tag(new_tag, cwd=None):
         raise ExecutionError("Error pushing tag to origin")
 
 
-def tags_get_filtered(stage=None, prefix='', cwd=None):
+def tags_get_filtered(stage=None, prefix='', cwd=None, create_default_tags=False):
     """
     gets list of all tags and filters them based on stage and prefix
     :param stage:
@@ -107,6 +108,7 @@ def tags_get_filtered(stage=None, prefix='', cwd=None):
     :return:
     """
     p = subprocess.Popen(['git', 'tag', '--list'], stdout=subprocess.PIPE, cwd=cwd)
+    tags = []
 
     for line in p.stdout.readlines():
         try:
@@ -116,7 +118,16 @@ def tags_get_filtered(stage=None, prefix='', cwd=None):
         except AssertionError:
             tag = None
         if tag and tag.data['stage'] == stage:
-            yield tag
+            tags.append(tag)
+
+    # Create some base tags if none have been created.
+    if not tags and create_default_tags:
+        if stage:
+            tags = [Tag("{}0.0.0-{}".format(prefix, stage), prefix=prefix)]
+        else:
+            tags = [Tag("{}0.0.0".format(prefix), prefix=prefix)]
+
+    return tags
 
 
 def latest_tag(stage=None, prefix='', cwd=None):
@@ -127,7 +138,7 @@ def latest_tag(stage=None, prefix='', cwd=None):
     :return: latest available tag that matches prefix and stage
     """
 
-    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd), reverse=True)
+    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True), reverse=True)
     if tags:
         return tags[0]
     return
@@ -142,7 +153,8 @@ def bump_tag(stage=None, prefix='', cwd=None, field='build'):
     :param field: which field to bump (major, minor, patch, build)
     :return: bumped version tag
     """
-    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd), reverse=True)
+    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True), reverse=True)
+
     if tags:
         ver = tags[0]
         # print("Bumping:{}".format(ver), file=sys.stderr)
@@ -177,7 +189,7 @@ def list_tags(stage=None, prefix='', cwd=None, reverse=True):
     :param reverse: sort order (descending by default)
     :return: sorted list of available tags that match prefix and stage
     """
-    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd),
+    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True),
                   reverse=reverse)
     if tags:
         return tags
@@ -229,8 +241,7 @@ def command_list(args):
     delimeter = "\n"
     if args.csv:
         delimeter = ','
-
-    tags = list_tags(args.stage, args.prefix, args.cwd, args.reverse)
+    tags = list_tags(stage=args.stage, prefix=args.prefix, cwd=args.cwd, reverse=args.reverse)
     if tags is None:
         return "ERROR: No tags has been found. Please create 1st SemVer tag i.e. 'git tag 0.0.1'"
 
