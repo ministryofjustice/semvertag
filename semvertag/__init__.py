@@ -5,11 +5,9 @@ import os
 import re
 import sys
 import subprocess
-
+import operator
 import argparse
 
-
-DEVNULL = open(os.devnull, 'wb')
 
 _REGEX = re.compile('^(?P<major>(?:0|[1-9][0-9]*))'
                     '\.(?P<minor>(?:0|[1-9][0-9]*))'
@@ -52,7 +50,7 @@ class Tag(object):
 
         self.data = parsed_data
 
-    def __cmp__(self, other):
+    def compare(self, other):
         """
         compare two objects (ignore stage field)
         """
@@ -60,7 +58,22 @@ class Tag(object):
             c = cmp(self.data[token], other.data[token])
             if c:
                 return c
-        return 0
+            return 0
+
+    def __lt__(self, other):
+        return operator.lt(set(self.data), set(other.data))
+
+    def __le__(self, other):
+        return operator.le(set(self.data), set(other.data))
+
+    def __eq__(self, other):
+        return operator.eq(set(self.data), set(other.data))
+
+    def __gt__(self, other):
+        return operator.gt(set(self.data), set(other.data))
+
+    def __ge__(self, other):
+        return operator.ge(set(self.data), set(other.data))
 
     def __repr__(self):
         return "Tag('{}')".format(self.__str__())
@@ -134,7 +147,6 @@ def tags_get_filtered(stage=None, prefix='', cwd=None, create_default_tags=False
             tags = [Tag("{}0.0.0-{}".format(prefix, stage), prefix=prefix)]
         else:
             tags = [Tag("{}0.0.0".format(prefix), prefix=prefix)]
-
     return tags
 
 

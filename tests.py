@@ -204,4 +204,4 @@ class TestInitialiseTags(BaseSemVerTagTest):
 
 if __name__ == '__main__':
     unittest.main()
-    DEVNULL.close()
+    # DEVNULL.close()
