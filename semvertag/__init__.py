@@ -7,7 +7,7 @@ import sys
 import subprocess
 import operator
 import argparse
-
+from functools import total_ordering
 
 _REGEX = re.compile('^(?P<major>(?:0|[1-9][0-9]*))'
                     '\.(?P<minor>(?:0|[1-9][0-9]*))'
@@ -20,6 +20,7 @@ class ExecutionError(Exception):
     pass
 
 
+@total_ordering
 class Tag(object):
     """
     Object encapsulating SemVer and tag prefix.
@@ -50,30 +51,16 @@ class Tag(object):
 
         self.data = parsed_data
 
-    def compare(self, other):
-        """
-        compare two objects (ignore stage field)
-        """
-        for token in ['major', 'minor', 'patch', 'build']:
-            c = cmp(self.data[token], other.data[token])
-            if c:
-                return c
-            return 0
+    @staticmethod
+    def get_values_as_list(values_as_dict):
+        include = {"major", "minor", "patch", "build"}
+        return list({x: values_as_dict[x] for x in values_as_dict if x in include}.values())
 
     def __lt__(self, other):
-        return operator.lt(set(self.data), set(other.data))
-
-    def __le__(self, other):
-        return operator.le(set(self.data), set(other.data))
+        return operator.lt(set(self.get_values_as_list(self.data)), set(other.get_values_as_list(other.data)))
 
     def __eq__(self, other):
-        return operator.eq(set(self.data), set(other.data))
-
-    def __gt__(self, other):
-        return operator.gt(set(self.data), set(other.data))
-
-    def __ge__(self, other):
-        return operator.ge(set(self.data), set(other.data))
+        return operator.eq(set(self.get_values_as_list(self.data)), set(other.get_values_as_list(other.data)))
 
     def __repr__(self):
         return "Tag('{}')".format(self.__str__())
@@ -141,12 +128,14 @@ def tags_get_filtered(stage=None, prefix='', cwd=None, create_default_tags=False
         if tag and tag.data['stage'] == stage:
             tags.append(tag)
 
+    print(tags)
     # Create some base tags if none have been created.
     if not tags and create_default_tags:
         if stage:
             tags = [Tag("{}0.0.0-{}".format(prefix, stage), prefix=prefix)]
         else:
             tags = [Tag("{}0.0.0".format(prefix), prefix=prefix)]
+    print(tags)
     return tags
 
 
