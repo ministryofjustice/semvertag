@@ -128,14 +128,12 @@ def tags_get_filtered(stage=None, prefix='', cwd=None, create_default_tags=False
         if tag and tag.data['stage'] == stage:
             tags.append(tag)
 
-    print(tags)
     # Create some base tags if none have been created.
     if not tags and create_default_tags:
         if stage:
             tags = [Tag("{}0.0.0-{}".format(prefix, stage), prefix=prefix)]
         else:
             tags = [Tag("{}0.0.0".format(prefix), prefix=prefix)]
-    print(tags)
     return tags
 
 
