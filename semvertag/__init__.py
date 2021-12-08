@@ -20,6 +20,11 @@ class ExecutionError(Exception):
     pass
 
 
+def sorter(item):
+    include = {"major", "minor", "patch", "build"}
+    return list({x: item.data[x] for x in item.data if x in include}.values())
+
+
 @total_ordering
 class Tag(object):
     """
@@ -57,7 +62,7 @@ class Tag(object):
         return list({x: values_as_dict[x] for x in values_as_dict if x in include}.values())
 
     def __lt__(self, other):
-        return operator.lt(set(self.get_values_as_list(self.data)), set(other.get_values_as_list(other.data)))
+        return operator.lt(set(self.get_values_as_list(self.data)), set(self.get_values_as_list(other.data)))
 
     def __eq__(self, other):
         return operator.eq(set(self.get_values_as_list(self.data)), set(other.get_values_as_list(other.data)))
@@ -134,6 +139,7 @@ def tags_get_filtered(stage=None, prefix='', cwd=None, create_default_tags=False
             tags = [Tag("{}0.0.0-{}".format(prefix, stage), prefix=prefix)]
         else:
             tags = [Tag("{}0.0.0".format(prefix), prefix=prefix)]
+
     return tags
 
 
@@ -144,8 +150,7 @@ def latest_tag(stage=None, prefix='', cwd=None):
     :param cwd: git repository directory
     :return: latest available tag that matches prefix and stage
     """
-
-    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True), reverse=True)
+    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True), reverse=True, key=sorter)
     if tags:
         return tags[0]
     return
@@ -160,7 +165,7 @@ def bump_tag(stage=None, prefix='', cwd=None, field='build'):
     :param field: which field to bump (major, minor, patch, build)
     :return: bumped version tag
     """
-    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True), reverse=True)
+    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True), reverse=True, key=sorter)
 
     if tags:
         ver = tags[0]
@@ -196,8 +201,11 @@ def list_tags(stage=None, prefix='', cwd=None, reverse=True):
     :param reverse: sort order (descending by default)
     :return: sorted list of available tags that match prefix and stage
     """
-    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True),
-                  reverse=reverse)
+    tags = sorted(
+        tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True),
+        key=sorter,
+        reverse=reverse
+    )
     if tags:
         return tags
 
