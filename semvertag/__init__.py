@@ -5,9 +5,8 @@ import os
 import re
 import sys
 import subprocess
-import operator
 import argparse
-from functools import total_ordering
+
 
 _REGEX = re.compile('^(?P<major>(?:0|[1-9][0-9]*))'
                     '\.(?P<minor>(?:0|[1-9][0-9]*))'
@@ -21,11 +20,15 @@ class ExecutionError(Exception):
 
 
 def sorter(item):
+    """
+    Calling function for sorter method
+    :param item:
+    :return:
+    """
     include = {"major", "minor", "patch", "build"}
     return list({x: item.data[x] for x in item.data if x in include}.values())
 
 
-@total_ordering
 class Tag(object):
     """
     Object encapsulating SemVer and tag prefix.
@@ -55,17 +58,6 @@ class Tag(object):
             parsed_data['build'] = 0
 
         self.data = parsed_data
-
-    @staticmethod
-    def get_values_as_list(values_as_dict):
-        include = {"major", "minor", "patch", "build"}
-        return list({x: values_as_dict[x] for x in values_as_dict if x in include}.values())
-
-    def __lt__(self, other):
-        return operator.lt(set(self.get_values_as_list(self.data)), set(self.get_values_as_list(other.data)))
-
-    def __eq__(self, other):
-        return operator.eq(set(self.get_values_as_list(self.data)), set(other.get_values_as_list(other.data)))
 
     def __repr__(self):
         return "Tag('{}')".format(self.__str__())
@@ -150,7 +142,16 @@ def latest_tag(stage=None, prefix='', cwd=None):
     :param cwd: git repository directory
     :return: latest available tag that matches prefix and stage
     """
-    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True), reverse=True, key=sorter)
+    tags = sorted(
+        tags_get_filtered(
+            stage=stage,
+            prefix=prefix,
+            cwd=cwd,
+            create_default_tags=True
+        ),
+        reverse=True,
+        key=sorter
+    )
     if tags:
         return tags[0]
     return
@@ -165,8 +166,16 @@ def bump_tag(stage=None, prefix='', cwd=None, field='build'):
     :param field: which field to bump (major, minor, patch, build)
     :return: bumped version tag
     """
-    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True), reverse=True, key=sorter)
-
+    tags = sorted(
+        tags_get_filtered(
+            stage=stage,
+            prefix=prefix,
+            cwd=cwd,
+            create_default_tags=True
+        ),
+        reverse=True,
+        key=sorter
+    )
     if tags:
         ver = tags[0]
         # print("Bumping:{}".format(ver), file=sys.stderr)
@@ -202,9 +211,14 @@ def list_tags(stage=None, prefix='', cwd=None, reverse=True):
     :return: sorted list of available tags that match prefix and stage
     """
     tags = sorted(
-        tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True),
-        key=sorter,
-        reverse=reverse
+        tags_get_filtered(
+            stage=stage,
+            prefix=prefix,
+            cwd=cwd,
+            create_default_tags=True
+        ),
+        reverse=reverse,
+        key=sorter
     )
     if tags:
         return tags
