@@ -5,11 +5,8 @@ import os
 import re
 import sys
 import subprocess
-
 import argparse
 
-
-DEVNULL = open(os.devnull, 'wb')
 
 _REGEX = re.compile('^(?P<major>(?:0|[1-9][0-9]*))'
                     '\.(?P<minor>(?:0|[1-9][0-9]*))'
@@ -22,6 +19,16 @@ class ExecutionError(Exception):
     pass
 
 
+def sorter(item):
+    """
+    Calling function for sorter method
+    :param item:
+    :return:
+    """
+    include = {"major", "minor", "patch", "build"}
+    return list({x: item.data[x] for x in item.data if x in include}.values())
+
+
 class Tag(object):
     """
     Object encapsulating SemVer and tag prefix.
@@ -32,8 +39,8 @@ class Tag(object):
 
     def __init__(self, version_string, prefix=''):
         # let's cut off prefix
-        assert version_string.startswith(prefix)
-        version_string = version_string.lstrip(prefix)
+        assert str(version_string).startswith(prefix)
+        version_string = str(version_string).lstrip(prefix)
         self.prefix = prefix
         match = _REGEX.match(version_string)
         if match is None:
@@ -52,16 +59,6 @@ class Tag(object):
 
         self.data = parsed_data
 
-    def __cmp__(self, other):
-        """
-        compare two objects (ignore stage field)
-        """
-        for token in ['major', 'minor', 'patch', 'build']:
-            c = cmp(self.data[token], other.data[token])
-            if c:
-                return c
-        return 0
-
     def __repr__(self):
         return "Tag('{}')".format(self.__str__())
 
@@ -74,7 +71,8 @@ class Tag(object):
         if self.data['build']:  # > 0
             build = "+{}".format(self.data['build'])
 
-        return "{}{}.{}.{}{}{}".format(self.prefix, self.data['major'], self.data['minor'], self.data['patch'], stage, build)
+        return "{}{}.{}.{}{}{}".format(self.prefix, self.data['major'], self.data['minor'], self.data['patch'], stage,
+                                       build)
 
 
 def git_tag(new_tag, cwd=None):
@@ -86,16 +84,18 @@ def git_tag(new_tag, cwd=None):
     :return:
     """
     assert new_tag
-    p = subprocess.Popen(['git', 'tag', '-a', '-m', 'Release', new_tag], cwd=cwd,
-                         stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-    if p.wait() != 0:
-        print(p.stderr.read(), file=sys.stderr)
+    try:
+        subprocess.run(['git', 'tag', '-a', '-m', 'Release', new_tag], cwd=cwd,
+                       stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    except subprocess.CalledProcessError as e:
+        print(e.stderr, file=sys.stderr)
         raise ExecutionError("Error tagging")
-    # only push newly created tag
-    p = subprocess.Popen(['git', 'push', 'origin', 'tag', new_tag], cwd=cwd,
+
+    try:
+        subprocess.run(['git', 'push', 'origin', 'tag', new_tag], cwd=cwd,
                          stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-    if p.wait() != 0:
-        print(p.stderr.read(), file=sys.stderr)
+    except subprocess.CalledProcessError as e:
+        print(e.stderr, file=sys.stderr)
         raise ExecutionError("Error pushing tag to origin")
 
 
@@ -107,10 +107,15 @@ def tags_get_filtered(stage=None, prefix='', cwd=None, create_default_tags=False
     :param cwd: git repository directory
     :return:
     """
-    p = subprocess.Popen(['git', 'tag', '--list'], stdout=subprocess.PIPE, cwd=cwd)
+    try:
+        p = subprocess.run(['git', 'tag', '--list'], cwd=cwd, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        print(e.stderr, file=sys.stderr)
+        raise ExecutionError("Error getting tags")
+
     tags = []
 
-    for line in p.stdout.readlines():
+    for line in p.stdout.decode().splitlines():
         try:
             tag = Tag(line.strip(), prefix=prefix)
         except ValueError:
@@ -137,8 +142,16 @@ def latest_tag(stage=None, prefix='', cwd=None):
     :param cwd: git repository directory
     :return: latest available tag that matches prefix and stage
     """
-
-    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True), reverse=True)
+    tags = sorted(
+        tags_get_filtered(
+            stage=stage,
+            prefix=prefix,
+            cwd=cwd,
+            create_default_tags=True
+        ),
+        reverse=True,
+        key=sorter
+    )
     if tags:
         return tags[0]
     return
@@ -153,8 +166,16 @@ def bump_tag(stage=None, prefix='', cwd=None, field='build'):
     :param field: which field to bump (major, minor, patch, build)
     :return: bumped version tag
     """
-    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True), reverse=True)
-
+    tags = sorted(
+        tags_get_filtered(
+            stage=stage,
+            prefix=prefix,
+            cwd=cwd,
+            create_default_tags=True
+        ),
+        reverse=True,
+        key=sorter
+    )
     if tags:
         ver = tags[0]
         # print("Bumping:{}".format(ver), file=sys.stderr)
@@ -189,8 +210,16 @@ def list_tags(stage=None, prefix='', cwd=None, reverse=True):
     :param reverse: sort order (descending by default)
     :return: sorted list of available tags that match prefix and stage
     """
-    tags = sorted(tags_get_filtered(stage=stage, prefix=prefix, cwd=cwd, create_default_tags=True),
-                  reverse=reverse)
+    tags = sorted(
+        tags_get_filtered(
+            stage=stage,
+            prefix=prefix,
+            cwd=cwd,
+            create_default_tags=True
+        ),
+        reverse=reverse,
+        key=sorter
+    )
     if tags:
         return tags
 
@@ -283,10 +312,10 @@ def get_argparser():
 
     parser_list = subparsers.add_parser('list')
     parser_list.add_argument('--reverse', action='store_false', help='Whether to '
-                             'reverse the sort order (descending by default) '
-                             'when listing tags')
+                                                                     'reverse the sort order (descending by default) '
+                                                                     'when listing tags')
     parser_list.add_argument('--csv', action='store_true', help='Use a comma '
-                             'to separate tags when listing')
+                                                                'to separate tags when listing')
     add_stage_prefix(parser_list)
     parser_list.set_defaults(func=command_list)
 
@@ -294,10 +323,12 @@ def get_argparser():
 
 
 def main():
+    DEVNULL = open(os.devnull, 'wb')
     parser = get_argparser()
     args = parser.parse_args()
     response = args.func(args)
     print(response)
+    DEVNULL.close()
 
 
 if __name__ == '__main__':

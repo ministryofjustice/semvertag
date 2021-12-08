@@ -1,5 +1,5 @@
 import os
-from subprocess import call
+import subprocess
 import unittest
 import semvertag
 
@@ -8,29 +8,31 @@ DEVNULL = open(os.devnull, 'wb')
 
 class BaseSemVerTagTest(unittest.TestCase):
     def setUp(self):
-        call("rm -Rf tmp".split())
-        call("mkdir -p tmp/repo-origin".split())
-        call("ls",
-             cwd="tmp",
-             stdout=DEVNULL)
-        call("git init".split(),
-             cwd="tmp/repo-origin",
-             stdout=DEVNULL)
-        call("touch readme.md".split(),
-             cwd="tmp/repo-origin",
-             stdout=DEVNULL)
-        call("git add .".split(),
-             cwd="tmp/repo-origin",
-             stdout=DEVNULL)
-        call("git commit -m start".split(),
-             cwd="tmp/repo-origin",
-             stdout=DEVNULL)
-        call("git clone repo-origin repo".split(),
-             cwd="tmp",
-             stdout=DEVNULL,
-             stderr=DEVNULL)
+        subprocess.run("rm -Rf tmp".split())
+        subprocess.run("mkdir -p tmp/repo-origin".split())
+        subprocess.run("ls",
+                              cwd="tmp",
+                              stdout=DEVNULL
+                              )
+        subprocess.run("git init".split(),
+                              cwd="tmp/repo-origin",
+                              stdout=DEVNULL)
+        subprocess.run("touch readme.md".split(),
+                              cwd="tmp/repo-origin",
+                              stdout=DEVNULL)
+        subprocess.run("git add .".split(),
+                              cwd="tmp/repo-origin",
+                              stdout=DEVNULL)
+        subprocess.run("git commit -m start".split(),
+                              cwd="tmp/repo-origin",
+                              stdout=DEVNULL)
+        subprocess.run("git clone repo-origin repo".split(),
+                              cwd="tmp",
+                              stdout=DEVNULL,
+                              stderr=DEVNULL)
 
-    def semvertag(self, command, cwd='tmp/repo'):
+    @staticmethod
+    def semvertag(command, cwd='tmp/repo'):
         parser = semvertag.get_argparser()
         args_list = ['--cwd', cwd]
         args_list.extend(command.split())
@@ -38,13 +40,14 @@ class BaseSemVerTagTest(unittest.TestCase):
         response = args.func(args)
         return response
 
-    def gittag(self, tagname):
-        call('git tag {}'.format(tagname).split(),
-             cwd="tmp/repo",
-             stdout=DEVNULL)
+    @staticmethod
+    def gittag(tagname):
+        subprocess.run('git tag {}'.format(tagname).split(),
+                         cwd="tmp/repo",
+                         stdout=DEVNULL)
 
     def tearDown(self):
-        call("rm -Rf tmp".split())
+        subprocess.run("rm -Rf tmp".split())
 
 
 class TestSemVerTag(BaseSemVerTagTest):
@@ -201,3 +204,4 @@ class TestInitialiseTags(BaseSemVerTagTest):
 
 if __name__ == '__main__':
     unittest.main()
+    # DEVNULL.close()

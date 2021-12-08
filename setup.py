@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='semvertag',
-    version='1.0.0',
+    version='2.0.0',
     url='http://github.com/ministryofjustice/semvertag',
     license='MIT',
     author='',
@@ -15,8 +15,7 @@ setup(
     long_description=__doc__,
     platforms='any',
     packages=find_packages(),
-    install_requires=[
-    ],
+    install_requires=[],
     classifiers=[
     ],
     entry_points={
